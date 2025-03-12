@@ -48,4 +48,9 @@ For questions or feedback, please connect with me via
 If you find these notebooks helpful, please star the repository and share it with others! 
 
 ---
-<div align="center"> [<img src="./public/button-buy-me-a-coffee.png" width="180" alt="Buy me a coffee button"/>](https://buymeacoffee.com/rhinoinsight) </div>
+
+<div align="center">
+
+[<img src="./public/button-buy-me-a-coffee.png" width="180" alt="Buy me a coffee button"/>](https://buymeacoffee.com/rhinoinsight)
+
+</div>
