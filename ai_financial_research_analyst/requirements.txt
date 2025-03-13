@@ -4,4 +4,3 @@ pandas
 pydantic
 yt-dlp
 google-genai
-python-dotenv
