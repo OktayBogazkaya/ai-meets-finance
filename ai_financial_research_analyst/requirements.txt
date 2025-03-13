@@ -1,0 +1,7 @@
+streamlit
+requests
+pandas
+pydantic
+yt-dlp
+google-generativeai
+python-dotenv
