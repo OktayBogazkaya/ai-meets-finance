@@ -3,5 +3,5 @@ requests
 pandas
 pydantic
 yt-dlp
-google-generativeai
+google-genai
 python-dotenv
