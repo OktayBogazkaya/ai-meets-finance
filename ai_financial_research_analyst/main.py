@@ -133,6 +133,7 @@ with tab1:
                     - Highlight key insights with bullet points
                     - Use tables for data presentation
                     - Include technical term explanations
+                    - Commentary and insights should be succinct but informative
                     """
 
                     response = client.models.generate_content(
@@ -199,8 +200,8 @@ with tab2:
 
                     # Define system instruction
                     system_instruction = """
-                    You are a stock market analyst who analyzes financial related podcasts to find investment ideas. Provides a comprehensive summary of the topics covered in teh podcast.
-                
+                    You are a financial market analyst. Analyze this podcast for financial insights and provide:.
+            
                     1. Executive Summary
                     {Concise overview of key findings and significance}
 
@@ -211,6 +212,7 @@ with tab2:
                     Your reporting style:
                     - Highlight key insights with bullet points
                     - Include technical term explanations
+                    - Commentary and insights should be succinct but informative
                     """
 
                     response = client.models.generate_content(
@@ -230,14 +232,13 @@ with tab2:
 
                     # Define system instruction
                     system_instruction = """
-                    You are a stock market analyst who analyzes market sentiment given the earnings call transcripts. Based on the transcripts, extract all mentioned companies
+                    You are a stock market analyst who analyzes market sentiment given the podcast interview. Based on the interview, extract all mentioned companies
                     
                     - For each company you extracted, provide the name, indicate if it's publicly traded, and if applicable, provide the stock symbol
                     - Give a score 1 if the sentiment is positive, -1 if neagtive, and 0 if the sentiment is neutral towards the mentioned company
                     - Reiterate the statement
-                    - Gove a one sentence explanation
+                    - Give a one sentence explanation
 
-                    Exclude company names which are only mentioned during analyst introductions.
                     """
                     response = client.models.generate_content(
                         model=model, 
@@ -280,12 +281,15 @@ with tab3:
                 with st.spinner('Processing...'):
                     
                     # Define system instruction
-                    prompt = """
+                    system_instruction = """
                         You are a financial market analyst. Analyze this video for financial insights and provide:
                     
-                        1. Summary of the main topics
-                        2. Key insights shared
-                        3. Any financial advice or strategies mentioned
+                        1. Executive Summary
+                        {Concise overview of key findings and significance}
+
+                        2. Key Findings
+                        {Main discoveries and analysis}
+                        {Expert insights and quotes}
 
                         Your reporting style:
                         - Highlight key insights with bullet points
@@ -297,11 +301,13 @@ with tab3:
                         model=model, 
                         contents=types.Content(
                             parts=[
-                                types.Part(text=prompt),
                                 types.Part(
                                     file_data=types.FileData(file_uri=video_url)
                                 )
                             ]
+                        ),
+                        config=GenerateContentConfig(
+                            system_instruction = system_instruction,
                         )
                     )
                     
@@ -311,4 +317,41 @@ with tab3:
                     #Show token usage 
                     with st.expander("🔍 Show Token Usage", expanded=False):
                         # Output Token Count
+                        input_token_count(response)
+
+                    # Define system instruction
+                    system_instruction = """
+                    You are a stock market analyst who analyzes market sentiment given the earnings call transcripts. Based on the transcripts, extract all mentioned companies
+                    
+                    - For each company you extracted, provide the name, indicate if it's publicly traded, and if applicable, provide the stock symbol
+                    - Give a score 1 if the sentiment is positive, -1 if neagtive, and 0 if the sentiment is neutral towards the mentioned company
+                    - Reiterate the statement
+                    - Gove a one sentence explanation
+
+                    Exclude company names which are only mentioned during analyst introductions.
+                    """
+                    response = client.models.generate_content(
+                        model=model, 
+                        contents=types.Content(
+                            parts=[
+                                types.Part(
+                                    file_data=types.FileData(file_uri=video_url)
+                                )
+                            ]
+                        ),
+                        config=GenerateContentConfig(
+                            system_instruction = system_instruction,
+                            response_mime_type= "application/json",
+                            response_schema= list[Company]
+                            )
+                    )
+
+                    st.subheader("Companies Mentioned:")
+
+                    json_output = json.loads(response.text)
+                    df_data = pd.DataFrame(json_output)
+                    st.write(df_data)
+
+                    # Show token usage
+                    with st.expander("🔍 Show Token Usage", expanded=False):
                         input_token_count(response)
