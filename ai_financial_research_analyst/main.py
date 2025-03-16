@@ -10,9 +10,13 @@ import yt_dlp
 
 from google import genai
 from google.genai.types import GenerateContentConfig
+from google.genai import types
 
 from pydantic import BaseModel
 from typing import Optional
+
+from google.genai import types
+
 
 # Streamlit page instructions
 st.set_page_config(
@@ -54,17 +58,6 @@ def save_uploaded_audio(uploaded_file):
     except Exception as e:
         st.error(f"Error handling uploaded file: {e}")
         return None
-
-# Function to download YouTube video
-def download_youtube_video(url):
-    ydl_opts = {
-        'format': 'best',  # Download the best quality available
-        'outtmpl': os.path.join(tempfile.gettempdir(), '%(title)s.%(ext)s'),  # Save to a temp file
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        video_path = ydl.prepare_filename(info_dict)
-    return video_path
 
 # Input Token Count
 def input_token_count(response):
@@ -274,11 +267,8 @@ with tab3:
 
     if video_url:
         try:
-            # Download video
-            video_path = download_youtube_video(video_url)
-
             # Display video
-            st.video(video_path)
+            st.video(video_url)
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
@@ -288,18 +278,9 @@ with tab3:
                 st.error("🚨 FMP API Key is missing! Please provide a valid API key to proceed.")
             else:
                 with st.spinner('Processing...'):
-            
-                    video_file = client.files.upload(file=video_path)
-
-                    while video_file.state.name == "PROCESSING":
-                        print("processing video...")
-                        time.sleep(5)
-                        print("video file name:")
-                        print(video_file.name)
-                        video_file = client.files.get(name=video_file.name)
                     
                     # Define system instruction
-                    system_instruction = """
+                    prompt = """
                         You are a financial market analyst. Analyze this video for financial insights and provide:
                     
                         1. Summary of the main topics
@@ -314,10 +295,14 @@ with tab3:
 
                     response = client.models.generate_content(
                         model=model, 
-                        contents=video_file, 
-                        config=GenerateContentConfig(
-                            system_instruction = system_instruction
-                        ),
+                        contents=types.Content(
+                            parts=[
+                                types.Part(text=prompt),
+                                types.Part(
+                                    file_data=types.FileData(file_uri=video_url)
+                                )
+                            ]
+                        )
                     )
                     
                     st.subheader(f"Video Summary:")
