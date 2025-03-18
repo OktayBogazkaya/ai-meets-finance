@@ -6,7 +6,7 @@ import tempfile
 import pandas as pd
 import requests
 import streamlit as st
-import yt_dlp
+from PIL import Image
 
 from google import genai
 from google.genai.types import GenerateContentConfig
@@ -49,7 +49,7 @@ def get_earnings_calls(symbol, year, quarter, api_key):
         st.error("Error fetching earnings call data")
         return None
     
-def save_uploaded_audio(uploaded_file):
+def save_uploaded_file(uploaded_file):
     """Save uploaded file to a temporary file and return the path."""
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.' + uploaded_file.name.split('.')[-1]) as tmp_file:
@@ -87,11 +87,11 @@ if GEMINI_API_KEY:
     model = "gemini-2.0-flash"
     config = {"response_modalities": ["TEXT"]}
 else:
-    st.sidebar.warning("🚨 GEMINI API Key is missing! Please provide a valid Gemini API key to proceed.")
+    st.sidebar.warning("⚠️ Please provide a valid Gemini API key to proceed.")
 
 # Tabs for different sections
-tabs = ["📞 Earnings Call Analysis", "🎙️ Podcast Analysis", "🎥 Youtube Video Analysis"]
-tab1, tab2, tab3 = st.tabs(tabs)
+tabs = ["📞 Earnings Call Analysis", "📸 Image/Chart Analysis", "🎙️ Podcast Analysis", "🎥 Youtube Video Analysis"]
+tab1, tab2, tab3, tab4 = st.tabs(tabs)
 
 # Display content based on selected tab
 with tab1:
@@ -109,7 +109,7 @@ with tab1:
 
     if st.button("Process Earnings Call"):
         if not FMP_API_KEY:
-            st.error("🚨 FMP API Key is missing! Please provide a valid API key to proceed.")
+            st.error("⚠️ FMP API Key is missing! Please provide a valid API key in the side bar to proceed.")
         else:
             with st.spinner('Processing...'):
                 transcript = get_earnings_calls(symbol, year, quarter, FMP_API_KEY)
@@ -183,24 +183,72 @@ with tab1:
                         # Output Token Count
                         input_token_count(response)
 
+
 with tab2:
+    st.subheader("Analyze Images&Charts")
+    image_file = st.file_uploader("Upload Image")
+    if image_file is not None:
+        image_path = save_uploaded_file(image_file)
+        st.subheader("Image Preview")
+        img = Image.open(image_path)
+        st.image(img, "Uploaded image")
+
+        if st.button("Process Image"):
+            if not GEMINI_API_KEY:
+                st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
+            else:
+                with st.spinner('Processing...'):
+                    image_path = client.files.upload(file=image_path)
+
+                    # Define system instruction
+                    system_instruction = """
+                    You are a financial market analyst. Analyze this image for financial insights and provide:
+            
+                    1. Executive Summary
+                    {Concise overview of key findings and significance}
+
+                    2. Key Findings
+                    {Main discoveries and analysis}
+                    {Expert insights and quotes}
+
+                    Your reporting style:
+                    - Highlight key insights with bullet points
+                    - Include technical term explanations
+                    """
+
+                    response = client.models.generate_content(
+                        model=model, 
+                        contents=image_path, 
+                        config=GenerateContentConfig(
+                            system_instruction = system_instruction
+                        ),
+                    )
+                    st.subheader(f"Image Analyis:")
+                    st.write(response.text)
+
+                    # Show token usage
+                    with st.expander("🔍 Show Token Usage", expanded=False):
+                        # Output Token Count
+                        input_token_count(response)
+
+with tab3:
     st.subheader("Analyze Podcasts")
     audio_file = st.file_uploader("Upload Podcast File (MP3)", type=['mp3'])
     if audio_file is not None:
-        audio_path = save_uploaded_audio(audio_file)
+        audio_path = save_uploaded_file(audio_file)
         st.subheader("Play Podcast Episode")
         st.audio(audio_path)
 
         if st.button("Process Podcast"):
             if not GEMINI_API_KEY:
-                st.error("🚨 Gemini API Key is missing! Please provide a valid API key to proceed.")
+                st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
             else:
                 with st.spinner('Processing...'):
                     audio_file = client.files.upload(file=audio_path)
 
                     # Define system instruction
                     system_instruction = """
-                    You are a financial market analyst. Analyze this podcast for financial insights and provide:.
+                    You are a financial market analyst. Analyze this podcast for financial insights and provide:
             
                     1. Executive Summary
                     {Concise overview of key findings and significance}
@@ -232,7 +280,7 @@ with tab2:
 
                     # Define system instruction
                     system_instruction = """
-                    You are a stock market analyst who analyzes market sentiment given the podcast interview. Based on the interview, extract all mentioned companies
+                    You are a stock market analyst who analyzes market sentiment given the podcast interview. Based on the interview, extract all mentioned companies.
                     
                     - For each company you extracted, provide the name, indicate if it's publicly traded, and if applicable, provide the stock symbol
                     - Give a score 1 if the sentiment is positive, -1 if neagtive, and 0 if the sentiment is neutral towards the mentioned company
@@ -260,7 +308,7 @@ with tab2:
                     with st.expander("🔍 Show Token Usage", expanded=False):
                         input_token_count(response)
 
-with tab3:
+with tab4:
     st.subheader("Analyze YT Videos")
 
     # Input YouTube link
@@ -276,7 +324,7 @@ with tab3:
 
         if st.button("Process Video"):
             if not GEMINI_API_KEY:
-                st.error("🚨 FMP API Key is missing! Please provide a valid API key to proceed.")
+                st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
             else:
                 with st.spinner('Processing...'):
                     
@@ -321,7 +369,7 @@ with tab3:
 
                     # Define system instruction
                     system_instruction = """
-                    You are a stock market analyst who analyzes market sentiment given the earnings call transcripts. Based on the transcripts, extract all mentioned companies
+                    You are a stock market analyst who analyzes market sentiment given the earnings call transcripts. Based on the transcripts, extract all mentioned companies.
                     
                     - For each company you extracted, provide the name, indicate if it's publicly traded, and if applicable, provide the stock symbol
                     - Give a score 1 if the sentiment is positive, -1 if neagtive, and 0 if the sentiment is neutral towards the mentioned company
