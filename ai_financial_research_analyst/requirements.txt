@@ -2,6 +2,8 @@
 
 pandas==2.2.3
 pydantic==2.8.2
+plotly==5.19.0
+kaleido==0.2.1
 requests==2.32.3
 streamlit==1.41.1
 yt-dlp==2025.2.19
