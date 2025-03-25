@@ -182,16 +182,15 @@ def create_technical_analysis_chart(df: pd.DataFrame, patterns: dict, sma_period
 
 def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> dict:
     """Fetch stock data and analyze support, resistance, chart patterns, and indicators."""
-    # Fetch complete OHLC data
     df = fetch_stock_data(ticker, period, interval)
     
     # Add technical indicators
     df = add_indicators(df, sma_period)
     
-    # Get support and resistance levels using Close prices
+    # Get support and resistance levels
     support, resistance = identify_support_resistance(df)
     
-    # Detect patterns using Close prices
+    # Detect patterns
     is_double_top, top1, top2, top_neckline = detect_double_top(df)
     is_double_bottom, bot1, bot2, bottom_neckline = detect_double_bottom(df)
     
@@ -211,20 +210,13 @@ def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> d
     
     # Create and display the chart
     fig = create_technical_analysis_chart(df, patterns, sma_period)
-    
-    # Save the chart as a temporary PNG file
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-        fig.write_image(tmp_file.name)
-        chart_path = tmp_file.name
-    
-    # Display the chart
     st.plotly_chart(fig, use_container_width=True)
     
+    # Return analysis results
     return {
         "support_levels": support.tolist(),
         "resistance_levels": resistance.tolist(),
         "double_top": is_double_top,
         "double_bottom": is_double_bottom,
-        "chart_path": chart_path
+        "figure": fig
     }
