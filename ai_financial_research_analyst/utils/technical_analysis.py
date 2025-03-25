@@ -10,9 +10,7 @@ import streamlit as st
 def fetch_stock_data(ticker: str, period: str, interval: str ) -> pd.DataFrame:
     """Fetch historical stock data from Yahoo Finance."""
     stock = yf.Ticker(ticker)
-    st.write(stock)
     raw_data = stock.history(period=period, interval=interval)
-    st.write(raw_data)
     df = raw_data[['Open', 'High', 'Low', 'Close']] 
 
     if len(df) == 0:
