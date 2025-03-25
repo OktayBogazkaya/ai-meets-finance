@@ -17,6 +17,8 @@ from typing import Optional
 
 from google.genai import types
 
+from utils.technical_analysis import analyze_stock
+
 
 # Streamlit page instructions
 st.set_page_config(
@@ -101,7 +103,7 @@ with tab1:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        symbol = st.selectbox("Enter Stock Symbol", ["PLTR", "TSLA", "NVDA", "MSFT", "AAPL", "META"])
+        symbol = st.selectbox("Select Ticker", ["FIVE", "DVN", "PLTR", "TSLA", "NVDA", "MSFT", "AAPL", "META"])
     with col2:
         year = st.selectbox("Select Year", [2024, 2023, 2022])
     with col3:
@@ -186,50 +188,127 @@ with tab1:
 
 with tab2:
     st.subheader("Analyze Images&Charts")
-    image_file = st.file_uploader("Upload Image")
-    if image_file is not None:
-        image_path = save_uploaded_file(image_file)
-        st.subheader("Image Preview")
-        img = Image.open(image_path)
-        st.image(img, "Uploaded image")
+    analysis_type = st.radio(
+        
+        "Please select",
+        ["Image Analysis", "Technical Chart Analysis"],
+        captions=[
+            "Get a summary of the key insights",
+            "Get a comprehensive technical analysis of the stock chart"
+        ]                            
+    )
 
-        if st.button("Process Image"):
-            if not GEMINI_API_KEY:
-                st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
-            else:
-                with st.spinner('Processing...'):
-                    image_path = client.files.upload(file=image_path)
+    if analysis_type == "Image Analysis":
+        image_file = st.file_uploader("Upload Image")
+        if image_file is not None:
+            image_path = save_uploaded_file(image_file)
+            st.subheader("Image Preview")
+            img = Image.open(image_path)
+            st.image(img, "Uploaded image")
 
-                    # Define system instruction
-                    system_instruction = """
-                    You are a financial market analyst. Analyze this image for financial insights and provide:
+            if st.button("Process Image"):
+                if not GEMINI_API_KEY:
+                    st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
+                else:
+                    with st.spinner('Processing...'):
+                        image_path = client.files.upload(file=image_path)
+
+                        # Define system instruction
+                        system_instruction = """
+                        You are a financial market analyst. Analyze this image for financial insights and provide:
+                
+                        1. Executive Summary
+                        {Concise overview of key findings and significance}
+
+                        2. Key Findings
+                        {Main discoveries and analysis}
+                        {Expert insights and quotes}
+
+                        Your reporting style:
+                        - Highlight key insights with bullet points
+                        - Include technical term explanations
+                        """
+
+                        response = client.models.generate_content(
+                            model=model, 
+                            contents=image_path, 
+                            config=GenerateContentConfig(
+                                system_instruction = system_instruction
+                            ),
+                        )
+                        st.subheader(f"Image Analyis:")
+                        st.write(response.text)
+
+                        # Show token usage
+                        with st.expander("🔍 Show Token Usage", expanded=False):
+                            # Output Token Count
+                            input_token_count(response)
+
+    if analysis_type == "Technical Chart Analysis":
+        st.subheader("Basic Settings")
+
+        col1, col2, col3 = st.columns(3)
+        with col1: 
+            symbol = st.selectbox("Select Ticker", ["FIVE","DVN","PLTR", "TSLA", "NVDA", "MSFT", "ISRG", "AAPL", "META", "ETH-USD"])
+            sma_period = st.selectbox("SMA Period", [10, 20, 50, 100, 200], help="Simple Moving Average (SMA) is a technical indicator that gives equal weight to a set number of price periods to identify trends.")
+        with col2:
+            period = st.selectbox("Select Data Range", ["1d","5d","1mo", "3mo", "6mo", "1y", "2y","5y", "ytd", "max"])
+        with col3:
+            interval = st.selectbox("Select Data Interval", ["1h","1d","1wk","1mo"])
             
-                    1. Executive Summary
-                    {Concise overview of key findings and significance}
+        if symbol is not None:
+            if st.button("Start Analysis"):
+                if not GEMINI_API_KEY:
+                    st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
+                else:
+                    with st.spinner('Processing...'):
+                        # Get technical analysis results and chart path
+                        result = analyze_stock(symbol, period, interval, sma_period)
+                        
+                        # Upload the chart to Gemini
+                        chart_path = client.files.upload(file=result['chart_path'])
+                        
+                        # Define system instruction for technical analysis
+                        system_instruction = """
+                        You are an expert technical analyst. Analyze this stock chart and provide:
 
-                    2. Key Findings
-                    {Main discoveries and analysis}
-                    {Expert insights and quotes}
+                        1. Technical Analysis Summary
+                        A detailed explanation of your analysis, including: 
+                        - Trend analysis
+                        - Pattern identification
 
-                    Your reporting style:
-                    - Highlight key insights with bullet points
-                    - Include technical term explanations
-                    """
+                        2. Trading Recommendation
+                        Based on your analysis and the the chart, provide:
+                        - BUY, SELL, or HOLD recommendation
+                        - Detailed rationale for the recommendation
+                        - Key risk factors to consider
+                        - Suggested entry/exit points if the recommendation is BUY or SELL. Otherwise skip this section.
 
-                    response = client.models.generate_content(
-                        model=model, 
-                        contents=image_path, 
-                        config=GenerateContentConfig(
-                            system_instruction = system_instruction
-                        ),
-                    )
-                    st.subheader(f"Image Analyis:")
-                    st.write(response.text)
+                        Format your response in a clear, structured manner with bullet points.
+                        Be specific about price levels and technical indicators.
+                        """
 
-                    # Show token usage
-                    with st.expander("🔍 Show Token Usage", expanded=False):
-                        # Output Token Count
-                        input_token_count(response)
+                        # Get Gemini's analysis
+                        response = client.models.generate_content(
+                            model=model,
+                            contents=chart_path,
+                            config=GenerateContentConfig(
+                                system_instruction=system_instruction
+                            ),
+                        )
+
+                        # Display the analysis
+                        st.subheader("Technical Analysis Summary")
+                        st.write(response.text)
+
+                        # Show token usage
+                        with st.expander("🔍 Show Token Usage", expanded=False):
+                            input_token_count(response)
+
+                        # Clean up temporary file
+                        import os
+                        os.unlink(result['chart_path'])
+
 
 with tab3:
     st.subheader("Analyze Podcasts")
