@@ -9,7 +9,7 @@ import streamlit as st
 from PIL import Image
 
 from google import genai
-from google.genai.types import GenerateContentConfig
+from google.genai.types import GenerateContentConfig, Part
 from google.genai import types
 
 from pydantic import BaseModel
@@ -56,6 +56,17 @@ def save_uploaded_file(uploaded_file):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.' + uploaded_file.name.split('.')[-1]) as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
+            return tmp_file.name
+    except Exception as e:
+        st.error(f"Error handling uploaded file: {e}")
+        return None
+
+def save_image_file(uploaded_file):
+    """Save uploaded file to a temporary file and return the path."""
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+            # Save the Plotly figure as PNG
+            uploaded_file.write_image(tmp_file.name)
             return tmp_file.name
     except Exception as e:
         st.error(f"Error handling uploaded file: {e}")
@@ -264,10 +275,13 @@ with tab2:
                     with st.spinner('Processing...'):
                         # Get technical analysis results and chart path
                         result = analyze_stock(symbol, period, interval, sma_period)
-                        
-                        # Upload the chart to Gemini
-                        chart_path = client.files.upload(file=result['chart_path'])
-                        
+
+                        image_path = save_image_file(result['figure'])
+
+                        # Read content from temp_file
+                        with open(image_path, 'rb') as f:
+                             local_file_img_bytes = f.read()
+
                         # Define system instruction for technical analysis
                         system_instruction = """
                         You are an expert technical analyst. Analyze this stock chart and provide:
@@ -288,12 +302,11 @@ with tab2:
                         Be specific about price levels and technical indicators.
                         """
 
-                        # Get Gemini's analysis
                         response = client.models.generate_content(
-                            model=model,
-                            contents=chart_path,
+                            model=model, 
+                            contents=[Part.from_bytes(data=local_file_img_bytes, mime_type="image/png")], 
                             config=GenerateContentConfig(
-                                system_instruction=system_instruction
+                                system_instruction = system_instruction
                             ),
                         )
 
@@ -305,9 +318,9 @@ with tab2:
                         with st.expander("🔍 Show Token Usage", expanded=False):
                             input_token_count(response)
 
-                        # Clean up temporary file
-                        import os
-                        os.unlink(result['chart_path'])
+                        # Clean up the temporary file
+                        os.remove(image_path)
+                        
 
 
 with tab3:
