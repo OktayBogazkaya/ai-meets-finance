@@ -272,57 +272,59 @@ with tab2:
                 if not GEMINI_API_KEY:
                     st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
                 else:
+                    result = analyze_stock(symbol, period, interval, sma_period)
+                    
+                    if result is not None:
+                            st.plotly_chart(result['figure'], use_container_width=True)
+                            
                     with st.spinner('Processing...'):
                         # Get technical analysis results and chart path
-                        result = analyze_stock(symbol, period, interval, sma_period)
 
-                        image_path = save_image_file(result['figure'])
+                            image_path = save_image_file(result['figure'])
 
-                        # Read content from temp_file
-                        with open(image_path, 'rb') as f:
-                             local_file_img_bytes = f.read()
+                            # Read content from temp_file
+                            with open(image_path, 'rb') as f:
+                                local_file_img_bytes = f.read()
 
-                        # Define system instruction for technical analysis
-                        system_instruction = """
-                        You are an expert technical analyst. Analyze this stock chart and provide:
+                            # Define system instruction for technical analysis
+                            system_instruction = """
+                            You are an expert technical analyst. Analyze this stock chart and provide:
 
-                        1. Technical Analysis Summary
-                        A detailed explanation of your analysis, including: 
-                        - Trend analysis
-                        - Pattern identification
+                            1. Technical Analysis Summary
+                            A detailed explanation of your analysis, including: 
+                            - Trend analysis
+                            - Pattern identification
 
-                        2. Trading Recommendation
-                        Based on your analysis and the the chart, provide:
-                        - BUY, SELL, or HOLD recommendation
-                        - Detailed rationale for the recommendation
-                        - Key risk factors to consider
-                        - Suggested entry/exit points if the recommendation is BUY or SELL. Otherwise skip this section.
+                            2. Trading Recommendation
+                            Based on your analysis and the the chart, provide:
+                            - BUY, SELL, or HOLD recommendation
+                            - Detailed rationale for the recommendation
+                            - Key risk factors to consider
+                            - Suggested entry/exit points if the recommendation is BUY or SELL. Otherwise skip this section.
 
-                        Format your response in a clear, structured manner with bullet points.
-                        Be specific about price levels and technical indicators.
-                        """
+                            Format your response in a clear, structured manner with bullet points.
+                            Be specific about price levels and technical indicators.
+                            """
 
-                        response = client.models.generate_content(
-                            model=model, 
-                            contents=[Part.from_bytes(data=local_file_img_bytes, mime_type="image/png")], 
-                            config=GenerateContentConfig(
-                                system_instruction = system_instruction
-                            ),
-                        )
+                            response = client.models.generate_content(
+                                model=model, 
+                                contents=[Part.from_bytes(data=local_file_img_bytes, mime_type="image/png")], 
+                                config=GenerateContentConfig(
+                                    system_instruction = system_instruction
+                                ),
+                            )
 
-                        # Display the analysis
-                        st.subheader("Technical Analysis Summary")
-                        st.write(response.text)
+                            # Display the analysis
+                            st.subheader("Technical Analysis Summary")
+                            st.write(response.text)
 
-                        # Show token usage
-                        with st.expander("🔍 Show Token Usage", expanded=False):
-                            input_token_count(response)
+                            # Show token usage
+                            with st.expander("🔍 Show Token Usage", expanded=False):
+                                input_token_count(response)
 
-                        # Clean up the temporary file
-                        os.remove(image_path)
+                            # Clean up the temporary file
+                            os.remove(image_path)
                         
-
-
 with tab3:
     st.subheader("Analyze Podcasts")
     audio_file = st.file_uploader("Upload Podcast File (MP3)", type=['mp3'])
