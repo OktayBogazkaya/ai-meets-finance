@@ -273,18 +273,17 @@ with tab2:
                     st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
                 else:
                     result = analyze_stock(symbol, period, interval, sma_period)
-                    
-                    if result is not None:
-                            st.plotly_chart(result['figure'], use_container_width=True)
-                            
+                
+                    st.plotly_chart(result['figure'], use_container_width=True)
+
+                    image_path = save_image_file(result['figure'])
+
+                    # Read content from temp_file
+                    with open(image_path, 'rb') as f:
+                        local_file_img_bytes = f.read()
+
                     with st.spinner('Processing...'):
                         # Get technical analysis results and chart path
-
-                            image_path = save_image_file(result['figure'])
-
-                            # Read content from temp_file
-                            with open(image_path, 'rb') as f:
-                                local_file_img_bytes = f.read()
 
                             # Define system instruction for technical analysis
                             system_instruction = """
@@ -323,7 +322,7 @@ with tab2:
                                 input_token_count(response)
 
                             # Clean up the temporary file
-                            os.remove(image_path)
+                            os.unlink(image_path)
                         
 with tab3:
     st.subheader("Analyze Podcasts")
