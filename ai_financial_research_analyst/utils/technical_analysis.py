@@ -14,6 +14,7 @@ def fetch_stock_data(ticker: str, period: str, interval: str ) -> pd.DataFrame:
     df = raw_data[['Open', 'High', 'Low', 'Close']] 
     df = dropna(df)
 
+
     if len(df) == 0:
         st.write("Warning: No data returned from yfinance!")
     
@@ -210,7 +211,6 @@ def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> d
     
     # Create and display the chart
     fig = create_technical_analysis_chart(df, patterns, sma_period)
-    st.plotly_chart(fig, use_container_width=True)
     
     # Return analysis results
     return {
