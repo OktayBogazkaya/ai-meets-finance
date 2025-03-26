@@ -11,10 +11,8 @@ def fetch_stock_data(ticker: str, period: str, interval: str ) -> pd.DataFrame:
     """Fetch historical stock data from Yahoo Finance."""
     stock = yf.Ticker(ticker)
     raw_data = stock.history(period=period, interval=interval)
-    df = raw_data[['Open', 'High', 'Low', 'Close']] 
 
-    if len(df) == 0:
-        st.write("Warning: No data returned from yfinance!")
+    df = raw_data[['Open', 'High', 'Low', 'Close']] 
     
     return df
 
@@ -75,14 +73,34 @@ def detect_double_bottom(df: pd.DataFrame, distance: int = 4, height_tolerance: 
 
     return True, bot1, bot2, neckline
 
-def add_indicators(df: pd.DataFrame, sma_period: int) -> pd.DataFrame:
-    """Add technical indicators to the dataframe."""
-    # Calculate SMA
-    df[f'SMA_{sma_period}'] = df['Close'].rolling(window=sma_period).mean()
+def add_indicators(df: pd.DataFrame, selected_indicators: list) -> pd.DataFrame:
+    """Add selected technical indicators to the dataframe."""
+    # Simple Moving Averages
+    sma_periods = {
+        "SMA10": 10,
+        "SMA20": 20,
+        "SMA50": 50,
+        "SMA100": 100,
+        "SMA200": 200
+    }
+    
+    # Calculate selected SMAs
+    for indicator in selected_indicators:
+        if indicator in sma_periods:
+            period = sma_periods[indicator]
+            df[indicator] = df['Close'].rolling(window=period).mean()
+
+    
+    # Bollinger Bands
+    if "Bollinger Bands" in selected_indicators:
+        df['BB_middle'] = df['Close'].rolling(window=20).mean()
+        df['BB_upper'] = df['BB_middle'] + 2 * df['Close'].rolling(window=20).std()
+        df['BB_lower'] = df['BB_middle'] - 2 * df['Close'].rolling(window=20).std()
+    
     return df
 
-def create_technical_analysis_chart(df: pd.DataFrame, patterns: dict, sma_period: int) -> go.Figure:
-    """Creates a combined technical analysis chart with all detected patterns and indicators."""
+def create_technical_analysis_chart(df: pd.DataFrame, patterns: dict, selected_indicators: list) -> go.Figure:
+    """Creates a combined technical analysis chart with selected indicators."""
     fig = go.Figure()
 
     # Add candlestick chart
@@ -97,94 +115,106 @@ def create_technical_analysis_chart(df: pd.DataFrame, patterns: dict, sma_period
         )
     )
 
-    # Add SMA
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df[f'SMA_{sma_period}'],
-            mode='lines',
-            name=f'SMA ({sma_period})',
-            line=dict(color='orange', width=2)
-        )
-    )
-
     # Add double top pattern if detected
     if patterns['double_top']['detected']:
         top1, top2 = patterns['double_top']['points']
         neckline = patterns['double_top']['neckline']
         
-        # Add peaks
-        fig.add_trace(
-            go.Scatter(
-                x=[df.index[top1], df.index[top2]],
-                y=[df['Close'].values[top1], df['Close'].values[top2]],
-                mode='markers',
-                name='Double Top',
-                marker=dict(color='black', size=12, symbol='x')
-            )
-        )
+        # Add markers for tops
+        fig.add_trace(go.Scatter(
+            x=[df.index[top1], df.index[top2]],
+            y=[df['Close'].iloc[top1], df['Close'].iloc[top2]],
+            mode='markers',
+            marker=dict(symbol="x", size=10, color='black'),
+            name='Double Top'
+        ))
         
-        # Add extended neckline
-        fig.add_trace(
-            go.Scatter(
-                x=[df.index[top1], df.index[-1]],
-                y=[neckline, neckline],
-                mode='lines',
-                name='Double Top Neckline',
-                line=dict(color='black', dash='dash')
-            )
-        )
+        # Add neckline
+        fig.add_trace(go.Scatter(
+            x=[df.index[top1], df.index[top2]],
+            y=[neckline, neckline],
+            mode='lines',
+            line=dict(dash='dash', color='black'),
+            name='Double Top Neckline'
+        ))
 
     # Add double bottom pattern if detected
     if patterns['double_bottom']['detected']:
         bot1, bot2 = patterns['double_bottom']['points']
         neckline = patterns['double_bottom']['neckline']
         
-        # Add troughs
-        fig.add_trace(
-            go.Scatter(
-                x=[df.index[bot1], df.index[bot2]],
-                y=[df['Close'].values[bot1], df['Close'].values[bot2]],
-                mode='markers',
-                name='Double Bottom',
-                marker=dict(color='Black', size=12, symbol='x')
-            )
-        )
+        # Add markers for bottoms
+        fig.add_trace(go.Scatter(
+            x=[df.index[bot1], df.index[bot2]],
+            y=[df['Close'].iloc[bot1], df['Close'].iloc[bot2]],
+            mode='markers',
+            marker=dict(symbol="x", size=10, color='blue'),
+            name='Double Bottom'
+        ))
         
-        # Add extended neckline
-        fig.add_trace(
-            go.Scatter(
-                x=[df.index[bot1], df.index[-1]],
-                y=[neckline, neckline],
-                mode='lines',
-                name='Double Bottom Neckline',
-                line=dict(color='black', dash='dash')
-            )
-        )
+        # Add neckline
+        fig.add_trace(go.Scatter(
+            x=[df.index[bot1], df.index[bot2]],
+            y=[neckline, neckline],
+            mode='lines',
+            line=dict(dash='dash', color='blue'),
+            name='Double Bottom Neckline'
+        ))
 
-    # Update layout
-    fig.update_layout(
-        title=f"Technical Analysis Chart",
-        xaxis_title="Date",
-        yaxis_title="Price (USD)",
-        showlegend=True,
-        height=600,
-        hovermode='x unified',
-        xaxis=dict(
-            rangeslider=dict(
-                visible=False
+    # Add selected indicators
+    colors = {
+        "SMA10": "#1f77b4",
+        "SMA20": "#ff7f0e",
+        "SMA50": "#2ca02c", 
+        "SMA100": "#9467bd",
+        "SMA200": "#d62728"
+    }
+
+    # Add Moving Averages
+    for indicator in selected_indicators:
+        if indicator.startswith(("SMA")):
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df[indicator],
+                    mode='lines',
+                    name=indicator,
+                    line=dict(color=colors.get(indicator, '#000000'))
+                )
             )
-        )
-    )
+
+    # Add Bollinger Bands
+    if "Bollinger Bands" in selected_indicators:
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_upper'], name='BB Upper',
+                               line=dict(color='gray', dash='dash')))
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_lower'], name='BB Lower',
+                               line=dict(color='gray', dash='dash')))
+
+
+    # Update layout based on selected indicators
+    layout_updates = {
+        "title": "Technical Analysis Chart",
+        "xaxis_title": "Date",
+        "yaxis_title": "Price (USD)",
+        "showlegend": True,
+        "hovermode": 'x unified',
+        "xaxis_rangeslider_visible": False  # Disable the range slider
+    }
+
+    fig.update_layout(**layout_updates)
 
     return fig
 
-def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> dict:
-    """Fetch stock data and analyze support, resistance, chart patterns, and indicators."""
+def analyze_stock(ticker: str, period: str, interval: str, selected_indicators: list) -> dict:
+    """Fetch stock data and analyze with selected indicators."""
     df = fetch_stock_data(ticker, period, interval)
     
+    if df.empty:
+        st.error(f"No data available for {ticker}. Please select another data interval or ticker.")
+        return None
+    
     # Add technical indicators
-    df = add_indicators(df, sma_period)
+    df = add_indicators(df, selected_indicators)
     
     # Get support and resistance levels
     support, resistance = identify_support_resistance(df)
@@ -193,7 +223,6 @@ def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> d
     is_double_top, top1, top2, top_neckline = detect_double_top(df)
     is_double_bottom, bot1, bot2, bottom_neckline = detect_double_bottom(df)
     
-    # Create patterns dictionary
     patterns = {
         'double_top': {
             'detected': is_double_top,
@@ -208,12 +237,11 @@ def analyze_stock(ticker: str, period: str, interval: str, sma_period: int) -> d
     }
     
     # Create and display the chart
-    fig = create_technical_analysis_chart(df, patterns, sma_period)
+    fig = create_technical_analysis_chart(df, patterns, selected_indicators)
     
-    # Return analysis results
     return {
-        "support_levels": support.tolist(),
-        "resistance_levels": resistance.tolist(),
+        "support_levels": support.tolist() if len(support) > 0 else [],
+        "resistance_levels": resistance.tolist() if len(resistance) > 0 else [],
         "double_top": is_double_top,
         "double_bottom": is_double_bottom,
         "figure": fig
