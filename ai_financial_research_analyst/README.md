@@ -2,14 +2,14 @@
 
 A Streamlit app that leverages Google's multimodal Flash models to help investors process and analyze financial information in multiple formats, extracting key insights with ease.
 
-## Video Demo
+## Web App
 
-Check out the demo video to see the app in action 👉 [Demo Video](https://youtu.be/zCCNkR88iyQ)
-
+Try it yourself 👉 [Streamlit App](https://ai-financial-research-analyst.streamlit.app/)
 
 ## Features
 
 - **Earnings Call Transcript Analysis** - Extract insights from transcripts using the FinancialModelingPrep (FMP) API
+- **Image&Technical Chart Analysis** - Extract insights based on images or perform technical chart analysis to detect patterns and get AI-powered summary with trading recommendations
 - **Podcast Analysis** – Upload audio files and get AI-powered summaries
 - **Video Analysis** – Process YouTube video URLs to analyze financial discussions, interviews, and more
 - **Token Count Tracking** – Get input, output and total tokens for each LLM interaction
