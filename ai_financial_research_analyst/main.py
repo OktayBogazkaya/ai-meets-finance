@@ -114,7 +114,7 @@ with tab1:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        symbol = st.selectbox("Select Ticker", ["FIVE", "DVN", "PLTR", "TSLA", "NVDA", "MSFT", "AAPL", "META"])
+        symbol = st.selectbox("Select Ticker", ["ASML","FIVE", "DVN", "PLTR", "TSLA", "NVDA", "MSFT", "AAPL", "META"])
     with col2:
         year = st.selectbox("Select Year", [2024, 2023, 2022])
     with col3:
@@ -260,22 +260,36 @@ with tab2:
 
         col1, col2, col3 = st.columns(3)
         with col1: 
-            symbol = st.selectbox("Select Ticker", ["FIVE","DVN","PLTR", "TSLA", "NVDA", "MSFT", "ISRG", "AAPL", "META", "ETH-USD"])
-            sma_period = st.selectbox("SMA Period", [10, 20, 50, 100, 200], help="Simple Moving Average (SMA) is a technical indicator that gives equal weight to a set number of price periods to identify trends.")
+            symbol = st.selectbox("Select Ticker", ["ASML","FIVE","DVN","PLTR", "TSLA", "NVDA", "MSFT", "ISRG", "AAPL", "META", "ETH-USD"])
+            
+            indicators = st.multiselect(
+                "Select Technical Indicators",
+                options=[
+                    "SMA10", "SMA20", "SMA50", "SMA100", "SMA200",
+                    "Bollinger Bands"
+                ],
+                default=["SMA20"],
+                help="Choose multiple technical indicators to display on the chart"
+            )
+
         with col2:
             period = st.selectbox("Select Data Range", ["1d","5d","1mo", "3mo", "6mo", "1y", "2y","5y", "ytd", "max"])
         with col3:
-            interval = st.selectbox("Select Data Interval", ["1h","1d","1wk","1mo"])
+            interval = st.selectbox("Select Data Interval", 
+                                    ["1h","1d","1wk","1mo", "3mo"]
+            )
+
+        # Get technical analysis results
+        result = analyze_stock(symbol, period, interval, indicators)
+        
+        if result is not None:
+            st.plotly_chart(result['figure'], use_container_width=True)
             
         if symbol is not None:
             if st.button("Start Analysis"):
                 if not GEMINI_API_KEY:
                     st.error("⚠️ Gemini API Key is missing! Please provide a valid API key in the side bar to proceed.")
                 else:
-                    result = analyze_stock(symbol, period, interval, sma_period)
-                
-                    st.plotly_chart(result['figure'], use_container_width=True)
-
                     image_path = save_image_file(result['figure'])
 
                     # Read content from temp_file
