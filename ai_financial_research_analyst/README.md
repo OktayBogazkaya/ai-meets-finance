@@ -43,5 +43,3 @@ pip install -r requirements.txt
 5. Get your FMP API Key (to use the Earnings Call Transcript feature)
 
 - Sign up and generate an API key on [FMP](https://site.financialmodelingprep.com/)
-
----
