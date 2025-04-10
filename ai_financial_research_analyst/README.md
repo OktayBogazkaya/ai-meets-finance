@@ -19,7 +19,7 @@ Try it yourself 👉 [Streamlit App](https://ai-financial-research-analyst.strea
 1. Clone the repository
 
 ```
-git clone https://github.com/Shubhamsaboo/OktayBogazkaya/ai-meets-finance.git
+git clone https://github.com/OktayBogazkaya/ai-meets-finance.git
 
 ```
 
