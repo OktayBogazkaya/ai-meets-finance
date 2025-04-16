@@ -4,6 +4,10 @@ A Streamlit-based application that provides comprehensive market analysis by com
 
 This project demonstrates the power of [Agno AI's](https://github.com/agno-ai/agno) agent-based architecture to create a financial analysis team. It combines multiple specialized AI agents to deliver comprehensive market insights.
 
+## Web App
+
+Try it yourself 👉 [Streamlit App](https://ai-finance-agent-team.streamlit.app/)
+
 ## Features
 
 This project showcases several key Agno AI features:
