@@ -4,7 +4,6 @@ from textwrap import dedent
 # Import Agno AI components
 from agno.agent import Agent
 from agno.team import Team
-from agno.models.groq import Groq
 from agno.models.google import Gemini
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
